@@ -44,56 +44,66 @@ export class LeaderboardTracker {
   }
 
   async refreshSuggestions(): Promise<number> {
-    const tweetId = await this.getLeaderboardTweetId();
-    if (!tweetId) {
-      console.log('No leaderboard tweet ID set');
+    // Fetch all tweets from the account
+    console.log('Fetching all tweets from account...');
+    const tweets = await this.twitter.getUserTweets(50);
+
+    if (!tweets || tweets.length === 0) {
+      console.log('No tweets found');
       return 0;
     }
 
-    console.log(`Fetching replies to tweet ${tweetId}...`);
-    const replies = await this.twitter.getReplies(tweetId);
+    console.log(`Found ${tweets.length} tweets, fetching replies for each...`);
 
     let newCount = 0;
     let updatedCount = 0;
 
-    for (const reply of replies) {
-      const authorHandle = (reply as any)._username || 'unknown';
+    for (const tweet of tweets) {
+      try {
+        const replies = await this.twitter.getReplies(tweet.id);
 
-      const metrics = (reply as any).public_metrics || {
-        like_count: 0,
-        retweet_count: 0,
-        reply_count: 0,
-      };
+        for (const reply of replies) {
+          const authorHandle = (reply as any)._username || 'unknown';
 
-      const existing = await this.pool.query(
-        'SELECT id FROM suggestion_comments WHERE tweet_id = $1',
-        [reply.id]
-      );
+          const metrics = (reply as any).public_metrics || {
+            like_count: 0,
+            retweet_count: 0,
+            reply_count: 0,
+          };
 
-      if (existing.rows.length > 0) {
-        await this.pool.query(
-          `UPDATE suggestion_comments
-           SET like_count = $1, retweet_count = $2, reply_count = $3, updated_at = NOW()
-           WHERE tweet_id = $4`,
-          [metrics.like_count, metrics.retweet_count, metrics.reply_count, reply.id]
-        );
-        updatedCount++;
-      } else {
-        await this.pool.query(
-          `INSERT INTO suggestion_comments
-           (tweet_id, author_id, author_handle, content, like_count, retweet_count, reply_count)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            reply.id,
-            reply.author_id,
-            authorHandle,
-            reply.text,
-            metrics.like_count,
-            metrics.retweet_count,
-            metrics.reply_count,
-          ]
-        );
-        newCount++;
+          const existing = await this.pool.query(
+            'SELECT id FROM suggestion_comments WHERE tweet_id = $1',
+            [reply.id]
+          );
+
+          if (existing.rows.length > 0) {
+            await this.pool.query(
+              `UPDATE suggestion_comments
+               SET like_count = $1, retweet_count = $2, reply_count = $3, updated_at = NOW()
+               WHERE tweet_id = $4`,
+              [metrics.like_count, metrics.retweet_count, metrics.reply_count, reply.id]
+            );
+            updatedCount++;
+          } else {
+            await this.pool.query(
+              `INSERT INTO suggestion_comments
+               (tweet_id, author_id, author_handle, content, like_count, retweet_count, reply_count)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              [
+                reply.id,
+                reply.author_id,
+                authorHandle,
+                reply.text,
+                metrics.like_count,
+                metrics.retweet_count,
+                metrics.reply_count,
+              ]
+            );
+            newCount++;
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to get replies for tweet ${tweet.id}:`, err);
       }
     }
 
@@ -101,7 +111,7 @@ export class LeaderboardTracker {
       `UPDATE project_state SET last_leaderboard_refresh = NOW() WHERE id = 1`
     );
 
-    console.log(`Refresh complete: ${newCount} new, ${updatedCount} updated`);
+    console.log(`Refresh complete: ${newCount} new, ${updatedCount} updated across ${tweets.length} tweets`);
     return newCount;
   }
 
