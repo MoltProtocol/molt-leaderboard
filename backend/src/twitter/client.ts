@@ -208,4 +208,24 @@ export class TwitterClient {
 
     return null;
   }
+
+  /**
+   * Get recent tweets from the bot's account
+   */
+  async getUserTweets(maxResults: number = 20): Promise<TweetV2[]> {
+    if (!this.botUserId) {
+      throw new Error('Twitter client not initialized');
+    }
+
+    try {
+      const tweets = await this.client.v2.userTimeline(this.botUserId, {
+        max_results: maxResults,
+        'tweet.fields': ['created_at', 'conversation_id'],
+        exclude: ['retweets', 'replies'],
+      });
+      return tweets.data?.data || [];
+    } catch {
+      return [];
+    }
+  }
 }
