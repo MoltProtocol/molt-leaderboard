@@ -18,7 +18,10 @@ export function createWebServer(tracker: LeaderboardTracker, port: number = 3001
   app.get('/api/leaderboard', async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
-      const leaderboard = await tracker.getLeaderboard(limit);
+      const search = req.query.search as string | undefined;
+      const timeRange = req.query.timeRange as '24h' | '7d' | '30d' | 'all' | undefined;
+
+      const leaderboard = await tracker.getLeaderboard({ limit, search, timeRange });
       const stats = await tracker.getStats();
       const tweetId = await tracker.getLeaderboardTweetId();
 

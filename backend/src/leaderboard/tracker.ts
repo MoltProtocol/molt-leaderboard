@@ -139,17 +139,47 @@ export class LeaderboardTracker {
     }
   }
 
-  async getLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+  async getLeaderboard(options: {
+    limit?: number;
+    search?: string;
+    timeRange?: '24h' | '7d' | '30d' | 'all';
+  } = {}): Promise<LeaderboardEntry[]> {
+    const { limit = 50, search, timeRange = 'all' } = options;
+
+    // Build time filter
+    let timeFilter = '';
+    if (timeRange === '24h') {
+      timeFilter = `AND first_seen_at >= NOW() - INTERVAL '24 hours'`;
+    } else if (timeRange === '7d') {
+      timeFilter = `AND first_seen_at >= NOW() - INTERVAL '7 days'`;
+    } else if (timeRange === '30d') {
+      timeFilter = `AND first_seen_at >= NOW() - INTERVAL '30 days'`;
+    }
+
+    // Build search filter
+    let searchFilter = '';
+    const params: (string | number)[] = [];
+    let paramIndex = 1;
+
+    if (search) {
+      searchFilter = `AND LOWER(author_handle) LIKE LOWER($${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    params.push(limit);
+
     const result = await this.pool.query(
       `SELECT
          author_handle,
          COUNT(*)::int as comments,
          COALESCE(SUM(like_count), 0)::int as likes
        FROM suggestion_comments
+       WHERE 1=1 ${timeFilter} ${searchFilter}
        GROUP BY author_handle
        ORDER BY SUM(like_count) + COUNT(*) * 2 DESC
-       LIMIT $1`,
-      [limit]
+       LIMIT $${paramIndex}`,
+      params
     );
 
     return result.rows.map((r: { author_handle: string; comments: number; likes: number }, i: number) => ({

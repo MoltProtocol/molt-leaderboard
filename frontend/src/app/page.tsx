@@ -65,24 +65,45 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
+type TimeRange = '24h' | '7d' | '30d' | 'all';
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [timeRange, setTimeRange] = useState<TimeRange>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     setMounted(true);
-    fetchData();
-
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchData();
+      // Poll for updates every 30 seconds
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [mounted, debouncedSearch, timeRange]);
 
   async function fetchData() {
     try {
-      const res = await fetch(`${API_URL}/api/leaderboard`);
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (timeRange !== 'all') params.set('timeRange', timeRange);
+
+      const res = await fetch(`${API_URL}/api/leaderboard?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setContributors(data.leaderboard || []);
@@ -151,6 +172,32 @@ export default function Home() {
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5" />
                 Live
               </Badge>
+            </div>
+
+            {/* Filters */}
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-muted/30">
+              <input
+                type="text"
+                placeholder="Search username..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 max-w-xs bg-background border border-border rounded-md px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <div className="flex items-center gap-1">
+                {(['24h', '7d', '30d', 'all'] as TimeRange[]).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setTimeRange(range)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      timeRange === range
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {range === 'all' ? 'All' : range.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <Table>
