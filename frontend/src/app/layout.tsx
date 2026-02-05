@@ -14,17 +14,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Molt Protocol",
-  description: "Your vote, your protocol. Community-driven DeFi.",
+  description: "Your vote, your protocol. Community-driven crypto protocol.",
   openGraph: {
     title: "Molt Protocol",
-    description: "Your vote, your protocol. Community-driven DeFi.",
+    description: "Your vote, your protocol. Community-driven crypto protocol.",
     type: "website",
     siteName: "Molt Protocol",
   },
   twitter: {
     card: "summary",
     title: "Molt Protocol",
-    description: "Your vote, your protocol. Community-driven DeFi.",
+    description: "Your vote, your protocol. Community-driven crypto protocol.",
   },
 };
 
