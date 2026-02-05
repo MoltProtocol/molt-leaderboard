@@ -220,7 +220,7 @@ export class TwitterClient {
     try {
       const tweets = await this.client.v2.userTimeline(this.botUserId, {
         max_results: maxResults,
-        'tweet.fields': ['created_at', 'conversation_id'],
+        'tweet.fields': ['created_at', 'conversation_id', 'public_metrics'],
         exclude: ['retweets', 'replies'],
       });
       return tweets.data?.data || [];

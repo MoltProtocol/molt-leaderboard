@@ -174,12 +174,22 @@ export class LeaderboardTracker {
       'SELECT COUNT(DISTINCT author_handle)::int as count FROM suggestion_comments'
     );
 
-    const likes = await this.pool.query(
-      'SELECT COALESCE(SUM(like_count), 0)::int as total FROM suggestion_comments'
-    );
+    // Fetch actual impressions from tweets
+    let totalImpressions = 0;
+    try {
+      const tweets = await this.twitter.getUserTweets(50);
+      for (const tweet of tweets) {
+        const metrics = (tweet as any).public_metrics;
+        if (metrics?.impression_count) {
+          totalImpressions += metrics.impression_count;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch tweet impressions:', err);
+    }
 
     return {
-      impressions: (likes.rows[0].total || 0) * 10,
+      impressions: totalImpressions,
       totalComments: comments.rows[0].count,
       totalContributors: contributors.rows[0].count,
     };
