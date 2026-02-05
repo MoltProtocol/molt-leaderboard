@@ -20,7 +20,18 @@ export interface LeaderboardEntry {
   handle: string;
   comments: number;
   likes: number;
+  ideas: number;
   points: number;
+}
+
+export interface Idea {
+  id: number;
+  tweet_id: string;
+  author_handle: string;
+  content: string;
+  like_count: number;
+  reply_count: number;
+  first_seen_at: string;
 }
 
 export class LeaderboardTracker {
@@ -173,22 +184,61 @@ export class LeaderboardTracker {
       `SELECT
          author_handle,
          COUNT(*)::int as comments,
-         COALESCE(SUM(like_count), 0)::int as likes
+         COALESCE(SUM(like_count), 0)::int as likes,
+         COALESCE(SUM(CASE WHEN is_idea = true THEN 1 ELSE 0 END), 0)::int as ideas
        FROM suggestion_comments
        WHERE 1=1 ${timeFilter} ${searchFilter}
        GROUP BY author_handle
-       ORDER BY SUM(like_count) + COUNT(*) * 2 DESC
+       ORDER BY SUM(like_count) + COUNT(*) * 2 + COALESCE(SUM(CASE WHEN is_idea = true THEN 50 ELSE 0 END), 0) DESC
        LIMIT $${paramIndex}`,
       params
     );
 
-    return result.rows.map((r: { author_handle: string; comments: number; likes: number }, i: number) => ({
+    return result.rows.map((r: { author_handle: string; comments: number; likes: number; ideas: number }, i: number) => ({
       rank: i + 1,
       handle: r.author_handle,
       comments: r.comments,
       likes: r.likes,
-      points: r.likes + r.comments * 2,
+      ideas: r.ideas,
+      points: r.likes + r.comments * 2 + r.ideas * 50,
     }));
+  }
+
+  async getIdeas(options: {
+    limit?: number;
+    search?: string;
+  } = {}): Promise<Idea[]> {
+    const { limit = 50, search } = options;
+
+    let searchFilter = '';
+    const params: (string | number)[] = [];
+    let paramIndex = 1;
+
+    if (search) {
+      searchFilter = `AND LOWER(author_handle) LIKE LOWER($${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    params.push(limit);
+
+    const result = await this.pool.query(
+      `SELECT
+         id,
+         tweet_id,
+         author_handle,
+         content,
+         like_count,
+         reply_count,
+         first_seen_at
+       FROM suggestion_comments
+       WHERE is_idea = true ${searchFilter}
+       ORDER BY like_count DESC, first_seen_at DESC
+       LIMIT $${paramIndex}`,
+      params
+    );
+
+    return result.rows;
   }
 
   async getStats(): Promise<{

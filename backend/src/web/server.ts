@@ -46,6 +46,23 @@ export function createWebServer(tracker: LeaderboardTracker, port: number = 3001
     }
   });
 
+  app.get('/api/ideas', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const search = req.query.search as string | undefined;
+
+      const ideas = await tracker.getIdeas({ limit, search });
+
+      res.json({
+        ideas,
+        count: ideas.length,
+      });
+    } catch (error) {
+      console.error('Ideas API error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
