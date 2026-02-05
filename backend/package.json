@@ -1,0 +1,27 @@
+{
+  "name": "molt-leaderboard-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/run-leaderboard.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/run-leaderboard.js",
+    "dev": "ts-node --esm src/run-leaderboard.ts",
+    "lint": "tsc --noEmit"
+  },
+  "license": "MIT",
+  "description": "Molt Protocol leaderboard backend",
+  "dependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^25.1.0",
+    "@types/pg": "^8.16.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "pg": "^8.18.0",
+    "ts-node": "^10.9.2",
+    "twitter-api-v2": "^1.29.0",
+    "typescript": "^5.9.3"
+  }
+}
