@@ -426,14 +426,9 @@ export default function Home() {
         >
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Built in public</span>
-            <div className="flex items-center gap-4">
-              <a href="https://github.com/MoltProtocol/molt-leaderboard" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                GitHub
-              </a>
-              <a href="https://x.com/MoltProto" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                Twitter
-              </a>
-            </div>
+            <a href="https://x.com/MoltProto" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+              Twitter
+            </a>
           </div>
         </motion.footer>
       </div>
