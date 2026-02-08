@@ -160,11 +160,11 @@ export class LeaderboardTracker {
     // Build time filter
     let timeFilter = '';
     if (timeRange === '24h') {
-      timeFilter = `AND first_seen_at >= NOW() - INTERVAL '24 hours'`;
+      timeFilter = `AND sc.first_seen_at >= NOW() - INTERVAL '24 hours'`;
     } else if (timeRange === '7d') {
-      timeFilter = `AND first_seen_at >= NOW() - INTERVAL '7 days'`;
+      timeFilter = `AND sc.first_seen_at >= NOW() - INTERVAL '7 days'`;
     } else if (timeRange === '30d') {
-      timeFilter = `AND first_seen_at >= NOW() - INTERVAL '30 days'`;
+      timeFilter = `AND sc.first_seen_at >= NOW() - INTERVAL '30 days'`;
     }
 
     // Build search filter
@@ -173,7 +173,7 @@ export class LeaderboardTracker {
     let paramIndex = 1;
 
     if (search) {
-      searchFilter = `AND LOWER(author_handle) LIKE LOWER($${paramIndex})`;
+      searchFilter = `AND LOWER(sc.author_handle) LIKE LOWER($${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -181,26 +181,43 @@ export class LeaderboardTracker {
     params.push(limit);
 
     const result = await this.pool.query(
-      `SELECT
-         author_handle,
-         COUNT(*)::int as comments,
-         COALESCE(SUM(like_count), 0)::int as likes,
-         COALESCE(SUM(CASE WHEN is_idea = true THEN 1 ELSE 0 END), 0)::int as ideas
-       FROM suggestion_comments
-       WHERE 1=1 ${timeFilter} ${searchFilter}
-       GROUP BY author_handle
-       ORDER BY SUM(like_count) + COUNT(*) * 2 + COALESCE(SUM(CASE WHEN is_idea = true THEN 50 ELSE 0 END), 0) DESC
+      `WITH suggestion_stats AS (
+         SELECT
+           author_handle,
+           COUNT(*)::int as comments,
+           COALESCE(SUM(like_count), 0)::int as likes,
+           COALESCE(SUM(CASE WHEN is_idea = true THEN 1 ELSE 0 END), 0)::int as ideas
+         FROM suggestion_comments sc
+         WHERE 1=1 ${timeFilter} ${searchFilter}
+         GROUP BY author_handle
+       ),
+       accepted_stats AS (
+         SELECT
+           author_handle,
+           COALESCE(SUM(points), 0)::int as accepted_points
+         FROM accepted_ideas
+         GROUP BY author_handle
+       )
+       SELECT
+         COALESCE(s.author_handle, a.author_handle) as author_handle,
+         COALESCE(s.comments, 0) as comments,
+         COALESCE(s.likes, 0) as likes,
+         COALESCE(s.ideas, 0) as ideas,
+         COALESCE(a.accepted_points, 0) as accepted_points
+       FROM suggestion_stats s
+       FULL OUTER JOIN accepted_stats a ON s.author_handle = a.author_handle
+       ORDER BY COALESCE(s.likes, 0) + COALESCE(s.comments, 0) * 2 + COALESCE(s.ideas, 0) * 50 + COALESCE(a.accepted_points, 0) DESC
        LIMIT $${paramIndex}`,
       params
     );
 
-    return result.rows.map((r: { author_handle: string; comments: number; likes: number; ideas: number }, i: number) => ({
+    return result.rows.map((r: { author_handle: string; comments: number; likes: number; ideas: number; accepted_points: number }, i: number) => ({
       rank: i + 1,
       handle: r.author_handle,
       comments: r.comments,
       likes: r.likes,
       ideas: r.ideas,
-      points: r.likes + r.comments * 2 + r.ideas * 50,
+      points: r.likes + r.comments * 2 + r.ideas * 50 + r.accepted_points,
     }));
   }
 
