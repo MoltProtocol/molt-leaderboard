@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -123,6 +124,7 @@ interface Protocol {
   title: string;
   description: string;
   author: string;
+  link: string;
   steps: ProtocolStep[];
 }
 
@@ -132,6 +134,7 @@ const PROTOCOLS: Protocol[] = [
     title: 'Native On-Chain Randomness',
     description: 'Native randomness on-chain. No more praying to Chainlink VRF gods and paying tribute fees every time you need a coin flip.',
     author: 'Community Vote Winner',
+    link: '/vrf',
     steps: [
       { title: 'Research & Design', description: 'Commit-reveal with 2-block finality using keccak256 entropy mixing. VDF (Verifiable Delay Function) fallback for high-stakes requests. Target: 0.001 ETH per request vs Chainlink\'s 0.1+ LINK. Base L2 deployment first for sub-cent costs. EIP-712 typed signatures for request authentication.', status: 'in-progress' },
       { title: 'Smart Contract Development', description: 'RandomnessCoordinator.sol with request queue, entropy pool, and callback dispatch. Consumer base contract for easy integration.', status: 'upcoming' },
@@ -145,6 +148,7 @@ const PROTOCOLS: Protocol[] = [
     title: 'Decentralized AI Oracle Network',
     description: 'Base layer on Ethereum/L2 with open-source AI models on volunteer nodes. Nodes stake tokens, run verifications on off-chain data, and submit ZK proofs on-chain.',
     author: 'Community Vote Winner',
+    link: '/oracle',
     steps: [
       { title: 'Architecture Design', description: 'Optimistic oracle with 1hr challenge window. Nodes stake 1000 MOLT minimum, earn 0.1% per verified request. Slashing: 50% for provably wrong responses. RISC Zero zkVM for proof generation—nodes run inference locally, generate ZK proof of correct execution. Starting with Llama 3.1 8B quantized for node feasibility.', status: 'in-progress' },
       { title: 'GitHub Repo & MVP', description: 'Monorepo: /contracts (Solidity), /node (Rust client), /sdk (TypeScript). Basic text completion oracle with single-model support.', status: 'upcoming' },
@@ -228,6 +232,16 @@ function ProtocolCard({ protocol }: { protocol: Protocol }) {
             <ProgressStep key={i} step={step} index={i} />
           ))}
         </div>
+
+        <Link
+          href={protocol.link}
+          className="inline-flex items-center gap-1.5 mt-4 text-sm text-primary hover:underline"
+        >
+          Learn more
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+        </Link>
       </CardContent>
     </Card>
   );
