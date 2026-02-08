@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -248,12 +248,9 @@ function ProtocolCard({ protocol }: { protocol: Protocol }) {
   );
 }
 
-export default function Home() {
-  const searchParams = useSearchParams();
-  const tabParam = searchParams.get('tab') as Tab | null;
-
+function HomeContent({ initialTab }: { initialTab: Tab }) {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>(tabParam || 'progress');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -603,5 +600,19 @@ export default function Home() {
         </motion.footer>
       </div>
     </div>
+  );
+}
+
+function HomeWithSearchParams() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as Tab | null;
+  return <HomeContent initialTab={tabParam || 'progress'} />;
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <HomeWithSearchParams />
+    </Suspense>
   );
 }
