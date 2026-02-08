@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -248,8 +249,11 @@ function ProtocolCard({ protocol }: { protocol: Protocol }) {
 }
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as Tab | null;
+
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('leaderboard');
+  const [activeTab, setActiveTab] = useState<Tab>(tabParam || 'progress');
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);

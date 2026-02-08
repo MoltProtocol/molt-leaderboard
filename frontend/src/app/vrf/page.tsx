@@ -181,7 +181,7 @@ export default function VRFPage() {
                 </svg>
               </a>
               <Link
-                href="/"
+                href="/?tab=leaderboard"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 View Leaderboard
