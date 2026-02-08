@@ -110,7 +110,128 @@ function IdeaCard({ idea }: { idea: Idea }) {
 }
 
 type TimeRange = '24h' | '7d' | '30d' | 'all';
-type Tab = 'leaderboard' | 'ideas';
+type Tab = 'leaderboard' | 'ideas' | 'progress';
+
+interface ProtocolStep {
+  title: string;
+  description: string;
+  status: 'completed' | 'in-progress' | 'upcoming';
+}
+
+interface Protocol {
+  id: string;
+  title: string;
+  description: string;
+  author: string;
+  steps: ProtocolStep[];
+}
+
+const PROTOCOLS: Protocol[] = [
+  {
+    id: 'native-randomness',
+    title: 'Native On-Chain Randomness',
+    description: 'Native randomness on-chain. No more praying to Chainlink VRF gods and paying tribute fees every time you need a coin flip.',
+    author: 'Community Vote Winner',
+    steps: [
+      { title: 'Research & Design', description: 'Analyze existing VRF solutions and design native randomness architecture', status: 'in-progress' },
+      { title: 'Smart Contract Development', description: 'Build core randomness generation contracts', status: 'upcoming' },
+      { title: 'Security Audit', description: 'Third-party audit of randomness source and contracts', status: 'upcoming' },
+      { title: 'Testnet Deployment', description: 'Deploy to testnet for community testing', status: 'upcoming' },
+      { title: 'Mainnet Launch', description: 'Production deployment with documentation', status: 'upcoming' },
+    ],
+  },
+  {
+    id: 'decentralized-ai-oracle',
+    title: 'Decentralized AI Oracle Network',
+    description: 'Base layer on Ethereum/L2 with open-source AI models on volunteer nodes. Nodes stake tokens, run verifications on off-chain data, and submit ZK proofs on-chain.',
+    author: 'Community Vote Winner',
+    steps: [
+      { title: 'Architecture Design', description: 'Design node network, staking mechanism, and ZK proof system', status: 'in-progress' },
+      { title: 'GitHub Repo & MVP', description: 'Open-source repository with initial implementation', status: 'upcoming' },
+      { title: 'Testnet Node Network', description: 'Deploy testnet and onboard initial CT nodes', status: 'upcoming' },
+      { title: 'DAO Governance', description: 'Implement on-chain voting for feature decisions', status: 'upcoming' },
+      { title: 'Model Plugin System', description: 'Build extensible system for adding AI model plugins', status: 'upcoming' },
+      { title: 'Mainnet Launch', description: 'Production deployment with full documentation', status: 'upcoming' },
+    ],
+  },
+];
+
+function ProgressStep({ step, index }: { step: ProtocolStep; index: number }) {
+  const statusColors = {
+    'completed': 'bg-green-500',
+    'in-progress': 'bg-primary',
+    'upcoming': 'bg-muted-foreground/30',
+  };
+
+  const statusText = {
+    'completed': 'Completed',
+    'in-progress': 'In Progress',
+    'upcoming': 'Upcoming',
+  };
+
+  return (
+    <div className="flex gap-4">
+      <div className="flex flex-col items-center">
+        <div className={`w-3 h-3 rounded-full ${statusColors[step.status]}`} />
+        {index < 5 && <div className="w-0.5 h-full bg-border mt-1" />}
+      </div>
+      <div className="pb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <h4 className="text-sm font-medium text-foreground">{step.title}</h4>
+          <Badge
+            variant="outline"
+            className={`text-xs ${step.status === 'in-progress' ? 'border-primary text-primary' : ''}`}
+          >
+            {statusText[step.status]}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">{step.description}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProtocolCard({ protocol }: { protocol: Protocol }) {
+  const completedSteps = protocol.steps.filter(s => s.status === 'completed').length;
+  const inProgressSteps = protocol.steps.filter(s => s.status === 'in-progress').length;
+  const progress = Math.round(((completedSteps + inProgressSteps * 0.5) / protocol.steps.length) * 100);
+
+  return (
+    <Card className="bg-card border border-border">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-base font-semibold text-foreground mb-1">{protocol.title}</h3>
+            <p className="text-xs text-muted-foreground">{protocol.author}</p>
+          </div>
+          <Badge variant="outline" className="text-xs">
+            {progress}% Complete
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground mb-6">{protocol.description}</p>
+
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-muted-foreground mb-2">
+            <span>Progress</span>
+            <span>{completedSteps}/{protocol.steps.length} steps</span>
+          </div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-0">
+          {protocol.steps.map((step, i) => (
+            <ProgressStep key={i} step={step} index={i} />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -260,6 +381,16 @@ export default function Home() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('progress')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'progress'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            Protocol Progress
+          </button>
         </motion.div>
 
         {/* Main Content */}
@@ -373,7 +504,7 @@ export default function Home() {
                 </TableBody>
               </Table>
             </Card>
-          ) : (
+          ) : activeTab === 'ideas' ? (
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-medium">Protocol Ideas</h2>
@@ -413,6 +544,27 @@ export default function Home() {
                   ))}
                 </div>
               )}
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-sm font-medium">Protocol Progress</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tracking development of community-voted protocols
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs font-normal">
+                  <span className="w-1.5 h-1.5 bg-primary rounded-full mr-1.5 animate-pulse" />
+                  Building
+                </Badge>
+              </div>
+
+              <div className="space-y-6">
+                {PROTOCOLS.map((protocol) => (
+                  <ProtocolCard key={protocol.id} protocol={protocol} />
+                ))}
+              </div>
             </div>
           )}
         </motion.div>
